@@ -1,0 +1,99 @@
+---
+title: "Practical Machine Learning"
+author: "Amanda Parmenter"
+date: "Thursday, June 11, 2015"
+output: html_document
+---
+###Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. Use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har  (see the section on the Weight Lifting Exercise Dataset).
+
+###Reference
+
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+###Data source  
+The training data for this project are available here: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv . The test data are available here:https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv. 
+The goal of the project is to predict the manner in which participants did the exercise. This is the "classe" variable in the training set.
+
+###Initialise the environment
+```{r message=FALSE, warning = FALSE}
+library(caret)
+library(randomForest)
+library(e1071)
+library(rpart)
+library(rpart.plot)
+set.seed(8926)
+```
+
+###Load the data
+```{r}
+trainData <- read.csv("pml-training.csv", na.strings=c("NA",""));
+#trainData <- trainData[, c(ncol(trainData), 1:ncol(trainData)-1)];
+testData <- read.csv("pml-testing.csv", na.strings=c("NA",""));
+#testData <- trainData[, c(ncol(trainData), 1:ncol(trainData)-1)];
+```
+
+###Cleanse the data
+This should be done by removing the non-sensor features and then removing the ones with more than 1 NA value. I have also changed classe to be a factor. This will reduce the training dataset which has 19622 observations and 160 variables, down to 53 variables.
+
+```{r}
+#remove columns 1-7, delete NA variables and correct the data type of classe
+trainData <- trainData[, -(1:7)];
+trainData <- trainData[, colSums(is.na(trainData)) == 0];
+#trainData$classe <- as.factor(trainData$classe);
+#remove columns 1-7, delete NA variables and correct the data type of classe
+testData <- testData[, -(1:7)];
+testData <- testData[, colSums(is.na(testData)) == 0];
+#testData$classe <- as.factor(testData$classe);
+```
+
+### Data Modelling
+We can use cross validation and then a predictive model for activity recognition using Random Forest algorithm.
+
+## Cross Validation
+```{r}
+#split the training data in 2 so I can validate the model
+trainData1 <- createDataPartition(trainData$classe, p=0.70, list=F);
+trainmodelData <- trainData[trainData1, ];
+trainvalidData <- trainData[-trainData1, ];
+#create the cross validation control
+trainrfcontrol <- trainControl(method="cv", 15);
+```
+
+## Model the Training dataset with Caret/Random Forest
+```{r}
+modelFit <- train(classe ~. ,data=trainmodelData,method="rf",trControl=trainrfcontrol, ntree=150, allowParallel=TRUE);
+modelFit;
+```
+
+##Predict, check the accuracy and calculate the error
+```{r}
+trainpredict <- predict(modelFit, trainvalidData);
+confusionMatrix(trainvalidData$classe, trainpredict);
+modelaccuracy <- postResample(trainpredict, trainvalidData$classe);
+modelaccuracy;
+error <- 1 - as.numeric(confusionMatrix(trainvalidData$classe, trainpredict)$overall[1]);
+error;
+```
+
+So the accuracy of this model is 99.38% and the out of sample error is 0.61%.
+
+###Prediction Assignment Submission  
+```{r}
+testpredictData <- predict(modelFit, testData, type = "raw");
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(testpredictData);
+```
+
+###Appendix A
+Diagram of one of the trees from the randomForest model:
+```{r}
+trModel <- rpart(classe ~ ., data=trainmodelData, method="class");
+prp(trModel);
+```
