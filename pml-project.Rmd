@@ -54,10 +54,6 @@ str(trainData);
 
 ## Cross Validation
 ```{r}
-#split the training data in 2 so I can validate the model
-trainData1 <- createDataPartition(trainData$classe, p=0.70, list=F);
-trainmodelData <- trainData[trainData1, ];
-trainvalidData <- trainData[-trainData1, ];
 #create the cross validation control
 trainrfcontrol <- trainControl(method="cv", 15);
 ```
@@ -67,11 +63,11 @@ trainrfcontrol <- trainControl(method="cv", 15);
 modelFit <- train(classe ~. ,data=trainmodelData,method="rf",trControl=trainrfcontrol, ntree=150, allowParallel=TRUE);
 modelFit;
 ```
-So the accuracy of the training dataset comes out at 99.17%  It will be interesting to compare that with the test dataset when processed.
+So the accuracy of the training dataset comes out at 99.17%  I expect that value to increase when I process the test dataset.
 
-##Predict, check the accuracy and calculate the error
+##Predict, check the accuracy and calculate the error against the test dataset.
 ```{r}
-trainpredict <- predict(modelFit, trainvalidData);
+testpredict <- predict(modelFit, trainvalidData);
 confusionMatrix(trainvalidData$classe, trainpredict);
 modelaccuracy <- postResample(trainpredict, trainvalidData$classe);
 modelaccuracy;
@@ -79,7 +75,9 @@ error <- 1 - as.numeric(confusionMatrix(trainvalidData$classe, trainpredict)$ove
 error;
 ```
 
-So the accuracy of this prediction model is 99.38% when we process the test dataset and the out of sample error is 0.61%.  So that means that the predictions improved slightly (0.21%) when processing the test as opposed to the training dataset.
+So the accuracy of this prediction model is 99.38% when we process the test dataset and it was 99.17 for training so there was a 0.21% improvemment which is expected.
+
+The in sample error was 0.38% and the out of sample error is 0.61% which I would also expect as there is always the risk of overfitting with the training dataset when developing the prediction model.  
 
 ###Prediction Assignment Submission  
 ```{r}
