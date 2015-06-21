@@ -46,9 +46,11 @@ testData <- testData[, -(1:7)];
 testData <- testData[, colSums(is.na(testData)) == 0];
 #testData$classe <- as.factor(testData$classe);
 ```
-
+We can now look at the data columns which are left:
+```{r}
+str(trainData);
+```
 ### Data Modelling
-We can use cross validation and then a predictive model for activity recognition using Random Forest algorithm.
 
 ## Cross Validation
 ```{r}
@@ -65,6 +67,7 @@ trainrfcontrol <- trainControl(method="cv", 15);
 modelFit <- train(classe ~. ,data=trainmodelData,method="rf",trControl=trainrfcontrol, ntree=150, allowParallel=TRUE);
 modelFit;
 ```
+So the accuracy of the training dataset comes out at 99.17%  It will be interesting to compare that with the test dataset when processed.
 
 ##Predict, check the accuracy and calculate the error
 ```{r}
@@ -76,7 +79,7 @@ error <- 1 - as.numeric(confusionMatrix(trainvalidData$classe, trainpredict)$ove
 error;
 ```
 
-So the accuracy of this model is 99.38% and the out of sample error is 0.61%.
+So the accuracy of this prediction model is 99.38% when we process the test dataset and the out of sample error is 0.61%.  So that means that the predictions improved slightly (0.21%) when processing the test as opposed to the training dataset.
 
 ###Prediction Assignment Submission  
 ```{r}
